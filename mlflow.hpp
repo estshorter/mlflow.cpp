@@ -309,13 +309,11 @@ class Client {
 		send_data["status"] = detail::RunStatus[static_cast<int>(status)];
 		switch (status) {
 			case RunStatus::FINISHED:
-				send_data["end_time"] = endtime;
-				break;
 			case RunStatus::FAILED:
-				send_data["end_time"] = endtime;
-				break;
 			case RunStatus::KILLED:
 				send_data["end_time"] = endtime;
+				break;
+			default:
 				break;
 		}
 		auto res = cli.Post("/api/2.0/mlflow/runs/update", send_data.dump(), "application/json");
@@ -335,11 +333,10 @@ class Client {
 		return RunInfo(ret_json["run_info"]);
 	};
 
-	cpp::result<RunInfo, std::string> update_run(const std::string& run_id, RunStatus status
-												 ) {
+	cpp::result<RunInfo, std::string> update_run(const std::string& run_id, RunStatus status) {
 		using namespace std::chrono;
 		auto unixtime = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-		return update_run(run_id, status, unixtime);	
+		return update_run(run_id, status, unixtime);
 	}
 
 	cpp::result<void, std::string> log_metric(const std::string& run_id, const Metric& metric) {
