@@ -257,7 +257,7 @@ class Client {
 
 		send_data["name"] = name;
 		if (artifact_location != "") {
-			send_data["status"] = artifact_location;
+			send_data["artifact_location"] = artifact_location;
 		}
 
 		auto res =
