@@ -22,7 +22,8 @@ std::string url_encode(const std::string& value) {
 		std::string::value_type c = (*i);
 
 		// Keep alphanumeric and other accepted characters intact
-		if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' || c == '~') {
+		if (isalnum(static_cast<unsigned char>(c)) || c == '-' || c == '_' || c == '.' ||
+			c == '~') {
 			escaped << c;
 			continue;
 		}
@@ -35,7 +36,6 @@ std::string url_encode(const std::string& value) {
 
 	return escaped.str();
 }
-
 
 namespace detail {
 const static std::vector<std::string> RunStatus = {"RUNNING", "SCHEDULED", "FINISHED", "FAILED",
@@ -266,35 +266,19 @@ class Client {
 		if (!ret) {
 			return cpp::failure(ret.error());
 		}
-
-#ifdef _DEBUG
-		std::cout << "create_experiment:" << std::endl;
-		std::cout << res->body << std::endl;
-#endif
-		nlohmann::json ret_json = nlohmann::json::parse(res->body);
-		if (!ret_json.contains("experiment_id")) {
-			return cpp::failure("invalid response body");
-		}
-		return ret_json["experiment_id"];
+		return handle_http_body(res, "experiment_id", "create_experiment");
 	}
 
 	cpp::result<Experiment, std::string> get_experiment_by_name(const std::string& name) {
-		auto res = cli.Get(
-			("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + url_encode(name)).c_str());
+		auto res =
+			cli.Get(("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + url_encode(name))
+						.c_str());
 		auto ret = handle_http_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
 		}
 
-#ifdef _DEBUG
-		std::cout << "get_experiment_by_name:" << std::endl;
-		std::cout << res->body << std::endl;
-#endif
-		nlohmann::json ret_json = nlohmann::json::parse(res->body);
-		if (!ret_json.contains("experiment")) {
-			return cpp::failure("invalid response body");
-		}
-		return Experiment(ret_json["experiment"]);
+		return handle_http_body(res, "experiment", "get_experiment_by_name");
 	}
 
 	cpp::result<Run, std::string> create_run(const std::string& experiment_id,
@@ -309,15 +293,7 @@ class Client {
 			return cpp::failure(ret.error());
 		}
 
-#ifdef _DEBUG
-		std::cout << "create_run:" << std::endl;
-		std::cout << res->body << std::endl;
-#endif
-		nlohmann::json ret_json = nlohmann::json::parse(res->body);
-		if (!ret_json.contains("run")) {
-			return cpp::failure("invalid response body");
-		}
-		return Run(ret_json["run"]);
+		return handle_http_body(res, "run", "create_run");
 	};
 
 	cpp::result<Run, std::string> create_run(const std::string& experiment_id) {
@@ -347,15 +323,7 @@ class Client {
 			return cpp::failure(ret.error());
 		}
 
-#ifdef _DEBUG
-		std::cout << "update_run:" << std::endl;
-		std::cout << res->body << std::endl;
-#endif
-		nlohmann::json ret_json = nlohmann::json::parse(res->body);
-		if (!ret_json.contains("run_info")) {
-			return cpp::failure("invalid response body");
-		}
-		return RunInfo(ret_json["run_info"]);
+		return handle_http_body(res, "run_info", "update_run");
 	};
 
 	cpp::result<RunInfo, std::string> update_run(const std::string& run_id, RunStatus status) {
@@ -442,6 +410,21 @@ class Client {
 		}
 		return {};
 	};
+
+	cpp::result<nlohmann::json, std::string> handle_http_body(const httplib::Result& res,
+															  const std::string& key,
+															  const std::string& funcname) {
+#ifdef _DEBUG
+		std::cout << funcname << ":" << std::endl;
+		std::cout << res->body << std::endl;
+#endif
+		nlohmann::json ret_json = nlohmann::json::parse(res->body);
+		if (!ret_json.contains(key)) {
+			return cpp::failure("invalid response body, expected keyword: \"" + key + "\"" +
+								"but " + res->body);
+		}
+		return ret_json[key];
+	}
 
 	httplib::Client cli;
 };
