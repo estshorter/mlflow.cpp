@@ -12,6 +12,36 @@
 #include <vector>
 
 namespace mlflow {
+
+// https://stackoverflow.com/a/7214192
+// Flexo CC BY-SA 3.0
+namespace {
+std::string encimpl(std::string::value_type v) {
+	if (isalnum(v)) return std::string() + v;
+
+	std::ostringstream enc;
+	enc << '%' << std::setw(2) << std::setfill('0') << std::hex << std::uppercase
+		<< int(static_cast<unsigned char>(v));
+	return enc.str();
+}
+}  // namespace
+
+std::string urlencode(const std::string& url) {
+	// Find the start of the query string
+	const std::string::const_iterator start = std::find(url.begin(), url.end(), '?');
+
+	// If there isn't one there's nothing to do!
+	if (start == url.end()) return url;
+
+	// store the modified query string
+	std::string qstr;
+	// Append the transform result to qstr
+	for (auto it = start + 1; it != url.end(); it++) {
+		qstr.append(encimpl(*it));
+	}
+	return std::string(url.begin(), start + 1) + qstr;
+}
+
 namespace detail {
 const static std::vector<std::string> RunStatus = {"RUNNING", "SCHEDULED", "FINISHED", "FAILED",
 												   "KILLED"};
@@ -254,8 +284,8 @@ class Client {
 	}
 
 	cpp::result<Experiment, std::string> get_experiment_by_name(const std::string& name) {
-		auto res =
-			cli.Get(("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + name).c_str());
+		auto res = cli.Get(
+			("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + urlencode(name)).c_str());
 		auto ret = handle_http_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
