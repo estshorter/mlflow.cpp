@@ -342,11 +342,7 @@ class Client {
 
 		auto res =
 			cli.Post("/api/2.0/mlflow/runs/log-metric", send_data.dump(), "application/json");
-		auto ret = handle_http_result(res);
-		if (!ret) {
-			return cpp::failure(ret.error());
-		}
-		return {};
+		return handle_http_result(res);
 	};
 
 	cpp::result<void, std::string> log_batch(const std::string& run_id,
@@ -359,11 +355,7 @@ class Client {
 		send_data["params"] = params;
 		send_data["tags"] = tags;
 		auto res = cli.Post("/api/2.0/mlflow/runs/log-batch", send_data.dump(), "application/json");
-		auto ret = handle_http_result(res);
-		if (!ret) {
-			return cpp::failure(ret.error());
-		}
-		return {};
+		return handle_http_result(res);
 	};
 
 	cpp::result<void, std::string> log_param(const std::string& run_id, const Param& param) {
@@ -374,11 +366,7 @@ class Client {
 
 		auto res =
 			cli.Post("/api/2.0/mlflow/runs/log-parameter", send_data.dump(), "application/json");
-		auto ret = handle_http_result(res);
-		if (!ret) {
-			return cpp::failure(ret.error());
-		}
-		return {};
+		return handle_http_result(res);
 	};
 
 	cpp::result<void, std::string> set_tag(const std::string& run_id, const RunTag& tag) {
@@ -388,11 +376,7 @@ class Client {
 		send_data["value"] = tag.value;
 
 		auto res = cli.Post("/api/2.0/mlflow/runs/set-tag", send_data.dump(), "application/json");
-		auto ret = handle_http_result(res);
-		if (!ret) {
-			return cpp::failure(ret.error());
-		}
-		return {};
+		return handle_http_result(res);
 	};
 
    private:
