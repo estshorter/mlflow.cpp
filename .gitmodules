@@ -1,0 +1,9 @@
+[submodule "include/result"]
+	path = include/result
+	url = https://github.com/bitwizeshift/result.git
+[submodule "include/cpp-httplib"]
+	path = include/cpp-httplib
+	url = https://github.com/yhirose/cpp-httplib
+[submodule "include/json"]
+	path = include/json
+	url = https://github.com/nlohmann/json.git
