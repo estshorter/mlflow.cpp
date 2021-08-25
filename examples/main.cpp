@@ -1,6 +1,4 @@
-#include <iostream>
 #include <mlflow.hpp>
-#include <chrono>
 #include <thread>
 
 cpp::result<void, std::string> send_data(mlflow::Client& cli) {
@@ -46,7 +44,7 @@ cpp::result<void, std::string> example_low_level(void) {
 	cli.set_user_name().value();
 	cli.set_source_name().value();
 
-	auto ret1 =send_data(cli);
+	auto ret1 = send_data(cli);
 	if (!ret1) {
 		return cpp::failure(ret1.error());
 	}
@@ -67,9 +65,9 @@ cpp::result<void, std::string> example_high_level(void) {
 	auto ret1 = send_data(cli);
 	if (!ret1) {
 		return cpp::failure(ret1.error());
-	}	
+	}
 	// called in the destructor
-	//ret_ = cli.end_run(); 
+	// ret_ = cli.end_run();
 	return {};
 }
 
