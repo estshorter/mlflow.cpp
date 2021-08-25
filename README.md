@@ -2,8 +2,6 @@
 **mlflow.cpp** is a C++ library which communicates with [mlflow](https://mlflow.org/) via its [REST API](https://www.mlflow.org/docs/latest/rest-api.html).
 This library supports Windows10 and linux.
 
-Note: not all REST APIs are implemented.
-
 ## Requiremtents
 - C++17 or later
 - [cpp-httplib](https://github.com/yhirose/cpp-httplib)
@@ -11,6 +9,7 @@ Note: not all REST APIs are implemented.
 - [result](https://github.com/bitwizeshift/result)
 
 ## Implemented APIs
+Currently, the only following APIs are implemented.
 - Create Experiment
 - Get Experiment
 - Get Experiment By Name
@@ -18,6 +17,7 @@ Note: not all REST APIs are implemented.
 - Log Metric
 - Log Batch
 - Set Tag
+- Log Param
 - Update Run
 
 Also, `mlflow::start_run()` and `mlflow::end_run()` are implemented as helper functions.
