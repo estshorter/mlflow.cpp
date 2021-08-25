@@ -12,6 +12,11 @@
 #include <vector>
 
 namespace mlflow {
+namespace detail {
+const static std::vector<std::string> RunStatus = {"RUNNING", "SCHEDULED", "FINISHED", "FAILED",
+												   "KILLED"};
+const static std::vector<std::string> ViewType = {"ACTIVE_ONLY", "DELETED_ONLY", "ALL"};
+
 // https://stackoverflow.com/questions/154536/encode-decode-urls-in-c
 std::string url_encode(const std::string& value) {
 	std::ostringstream escaped;
@@ -36,11 +41,6 @@ std::string url_encode(const std::string& value) {
 
 	return escaped.str();
 }
-
-namespace detail {
-const static std::vector<std::string> RunStatus = {"RUNNING", "SCHEDULED", "FINISHED", "FAILED",
-												   "KILLED"};
-const static std::vector<std::string> ViewType = {"ACTIVE_ONLY", "DELETED_ONLY", "ALL"};
 };	// namespace detail
 
 enum class RunStatus : int { RUNNING, SCHEDULED, FINISHED, FAILED, KILLED, UNINITALIZED };
@@ -273,7 +273,7 @@ class Client {
 
 	cpp::result<Experiment, std::string> get_experiment_by_name(const std::string& name) {
 		auto res =
-			cli.Get(("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + url_encode(name))
+			cli.Get(("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + detail::url_encode(name))
 						.c_str());
 		auto ret = handle_http_method_result(res);
 		if (!ret) {
