@@ -68,10 +68,7 @@ enum class ViewType : int { ACTIVE_ONLY, DELETED_ONLY, ALL, UNINITALIZED };
 struct KeyValue {
    public:
 	KeyValue() : key(""), value(""){};
-	KeyValue(const std::string& key, const std::string& value) {
-		this->key = key;
-		this->value = value;
-	}
+	KeyValue(const std::string& key, const std::string& value) : key(key), value(value) {}
 	std::string key;
 	std::string value;
 };
@@ -127,6 +124,9 @@ void from_json(const nlohmann::json& j, Experiment& e) {
 struct Metric {
    public:
 	Metric() : key(""), value(""), timestamp(0), step(0){};
+	Metric(const std::string& key, const std::string& value, std::int64_t timestamp,
+		   std::int64_t step)
+		: key(key), value(value), timestamp(timestamp), step(step){};
 
    public:
 	std::string key;
@@ -272,9 +272,9 @@ class Client {
 	}
 
 	cpp::result<Experiment, std::string> get_experiment_by_name(const std::string& name) {
-		auto res =
-			cli.Get(("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + detail::url_encode(name))
-						.c_str());
+		auto res = cli.Get(
+			("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + detail::url_encode(name))
+				.c_str());
 		auto ret = handle_http_method_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
