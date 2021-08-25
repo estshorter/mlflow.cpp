@@ -1,6 +1,18 @@
 #pragma once
 #include <httplib.h>
 
+#ifdef _WIN32
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
+#pragma warning(suppress : 5105)
+#include <Lmcons.h>
+#include <Windows.h>
+#undef NOMINMAX
+#undef WIN32_LEAN_AND_MEAN
+#else
+#include <pwd.h>
+#endif
+
 #include <chrono>
 #include <iostream>
 #include <memory>
@@ -12,6 +24,65 @@
 #include <vector>
 
 namespace mlflow {
+namespace utils {
+#ifdef _WIN32
+inline std::string to_multibyte(UINT enc_dst, const std::wstring& src) {
+	int length_multibyte = WideCharToMultiByte(enc_dst, 0, src.c_str(), -1, NULL, 0, NULL, NULL);
+	if (length_multibyte <= 0) {
+		return "";
+	}
+	std::string dst(length_multibyte, 0);
+	WideCharToMultiByte(enc_dst, 0, src.data(), -1, &dst[0], length_multibyte, NULL, NULL);
+	return dst.erase(static_cast<size_t>(length_multibyte) - 1, 1);	 //ヌル文字削除
+}
+#endif
+
+cpp::result<std::string, std::string> get_user_name() {
+#ifdef _WIN32
+	wchar_t user_name[UNLEN + 1];
+	DWORD user_name_size = UNLEN + 1;
+	if (GetUserNameW(user_name, &user_name_size)) {
+		return to_multibyte(CP_UTF8, user_name);
+	}
+	return cpp::failure("get_username: GetUserNameW failed");
+#else
+	uid_t uid = geteuid();
+	struct passwd* pw = getpwuid(uid);
+	if (pw) {
+		return std::string(pw->pw_name);
+	}
+	return cpp::failure("get_username: getpwuid failed");
+#endif
+};
+
+cpp::result<std::string, std::string> get_program_path() {
+#ifdef _WIN32
+	DWORD nsize = _MAX_PATH + 1;
+	int cnt = 0;
+	while (true) {
+		std::vector<wchar_t> path(nsize);
+		auto rc = GetModuleFileNameW(nullptr, &path[0], nsize);
+		if (GetLastError() == ERROR_INSUFFICIENT_BUFFER) {
+			nsize *= 2;
+			cnt++;
+			if (cnt > 15) {
+				return cpp::failure("get_program_path: iterataton limit reached");
+			}
+			continue;
+		} else if (rc == 0) {
+			return cpp::failure("get_program_path: GetModuleFileNameW failed");
+		} else {
+			return to_multibyte(CP_UTF8, path.data());
+		}
+	}
+	return cpp::failure("get_program_path: GetModuleFileName failed");
+
+#else
+
+#endif
+}
+
+}  // namespace utils
 namespace detail {
 const static std::vector<std::string> RunStatus = {"RUNNING", "SCHEDULED", "FINISHED", "FAILED",
 												   "KILLED"};
@@ -127,6 +198,13 @@ struct Metric {
 	Metric(const std::string& key, const std::string& value, std::int64_t timestamp,
 		   std::int64_t step)
 		: key(key), value(value), timestamp(timestamp), step(step){};
+	Metric(const std::string& key, const std::string& value, std::int64_t step)
+		: key(key),
+		  value(value),
+		  timestamp(std::chrono::duration_cast<std::chrono::milliseconds>(
+						std::chrono::system_clock::now().time_since_epoch())
+						.count()),
+		  step(step){};
 
    public:
 	std::string key;
@@ -249,8 +327,15 @@ void from_json(const nlohmann::json& j, Run& rd) {
 
 class Client {
    public:
-	Client(const std::string& scheme_host_port) : cli(scheme_host_port){};
-	Client(const std::string& host, int port) : cli(host, port){};
+	Client(const std::string& scheme_host_port) : cli(scheme_host_port), run_id_(""){};
+	Client(const std::string& host, int port) : cli(host, port), run_id_(""){};
+
+	~Client() {
+		if (running && !run_id_.empty()) {
+			end_run().value();
+		}
+	}
+
 	void set_proxy(const std::string& host, int port) { cli.set_proxy(host.c_str(), port); };
 
 	cpp::result<std::string, std::string> create_experiment(
@@ -271,6 +356,18 @@ class Client {
 		return handle_http_body(res, "experiment_id", "create_experiment");
 	}
 
+	cpp::result<Experiment, std::string> get_experiment(const std::string& experiment_id) {
+		auto res = cli.Get(
+			("/api/2.0/mlflow/experiments/get?experiment_id=" + detail::url_encode(experiment_id))
+				.c_str());
+		auto ret = handle_http_method_result(res);
+		if (!ret) {
+			return cpp::failure(ret.error());
+		}
+
+		return handle_http_body(res, "experiment", "get_experiment_by_name");
+	}
+
 	cpp::result<Experiment, std::string> get_experiment_by_name(const std::string& name) {
 		auto res = cli.Get(
 			("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + detail::url_encode(name))
@@ -284,18 +381,23 @@ class Client {
 	}
 
 	cpp::result<Run, std::string> create_run(const std::string& experiment_id,
-											 const int64_t start_time
-											 /* const std::vector<RunTag>& tags*/) {
+											 const int64_t start_time,
+											 const std::vector<RunTag>& tags = {}) {
 		nlohmann::json send_data;
 		send_data["experiment_id"] = experiment_id;
 		send_data["start_time"] = start_time;
+		send_data["tags"] = tags;
 		auto res = cli.Post("/api/2.0/mlflow/runs/create", send_data.dump(), "application/json");
 		auto ret = handle_http_method_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
 		}
 
-		return handle_http_body(res, "run", "create_run");
+		auto ret_ = handle_http_body(res, "run", "create_run");
+		if (ret_) {
+			running = true;
+		}
+		return ret_;
 	};
 
 	cpp::result<Run, std::string> create_run(const std::string& experiment_id) {
@@ -325,7 +427,22 @@ class Client {
 			return cpp::failure(ret.error());
 		}
 
-		return handle_http_body(res, "run_info", "update_run");
+		auto ret_ = handle_http_body(res, "run_info", "update_run");
+		if (ret_) {
+			switch (status) {
+				case RunStatus::FINISHED:
+				case RunStatus::FAILED:
+				case RunStatus::KILLED:
+					running = false;
+					break;
+				case RunStatus::RUNNING:
+					running = true;
+					break;
+				default:
+					break;
+			}
+		}
+		return ret_;
 	};
 
 	cpp::result<RunInfo, std::string> update_run(const std::string& run_id, RunStatus status) {
@@ -334,17 +451,27 @@ class Client {
 		return update_run(run_id, status, unixtime);
 	}
 
+	cpp::result<RunInfo, std::string> update_run(RunStatus status) {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+		return update_run(this->run_id_, status);
+	}
+
 	cpp::result<void, std::string> log_metric(const std::string& run_id, const Metric& metric) {
-		nlohmann::json send_data;
+		nlohmann::json send_data(metric);
 		send_data["run_id"] = run_id;
-		send_data["key"] = metric.key;
-		send_data["value"] = metric.value;
-		send_data["timestamp"] = metric.timestamp;
-		send_data["step"] = metric.step;
 
 		auto res =
 			cli.Post("/api/2.0/mlflow/runs/log-metric", send_data.dump(), "application/json");
 		return handle_http_method_result(res);
+	};
+
+	cpp::result<void, std::string> log_metric(const Metric& metric) {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+		return log_metric(run_id_, metric);
 	};
 
 	cpp::result<void, std::string> log_batch(const std::string& run_id,
@@ -360,26 +487,150 @@ class Client {
 		return handle_http_method_result(res);
 	};
 
+	cpp::result<void, std::string> log_batch(const std::vector<Metric>& metrics = {},
+											 const std::vector<Param>& params = {},
+											 const std::vector<RunTag>& tags = {}) {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+		return log_batch(run_id_, metrics, params, tags);
+	}
+
 	cpp::result<void, std::string> log_param(const std::string& run_id, const Param& param) {
-		nlohmann::json send_data;
+		nlohmann::json send_data(param);
 		send_data["run_id"] = run_id;
-		send_data["key"] = param.key;
-		send_data["value"] = param.value;
 
 		auto res =
 			cli.Post("/api/2.0/mlflow/runs/log-parameter", send_data.dump(), "application/json");
 		return handle_http_method_result(res);
 	};
 
+	cpp::result<void, std::string> log_param(const Param& param) {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+		return log_param(run_id_, param);
+	}
+
 	cpp::result<void, std::string> set_tag(const std::string& run_id, const RunTag& tag) {
-		nlohmann::json send_data;
+		nlohmann::json send_data(tag);
 		send_data["run_id"] = run_id;
-		send_data["key"] = tag.key;
-		send_data["value"] = tag.value;
 
 		auto res = cli.Post("/api/2.0/mlflow/runs/set-tag", send_data.dump(), "application/json");
 		return handle_http_method_result(res);
 	};
+
+	cpp::result<void, std::string> set_tag(const RunTag& tag) {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+		return set_tag(run_id_, tag);
+	}
+
+	void set_runid(const std::string& run_id) { run_id_ = run_id; }
+
+	cpp::result<void, std::string> set_run_name(const std::string& run_id,
+												const std::string& run_name) {
+		return set_tag(run_id, {"mlflow.runName", run_name});
+	}
+
+	cpp::result<void, std::string> set_run_name(const std::string& run_name) {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+
+		return set_run_name(run_id_, run_name);
+	}
+
+	cpp::result<void, std::string> set_source_name(const std::string& run_id,
+												   const std::string& path) {
+		return set_tag(run_id, {"mlflow.source.name", path});
+	}
+
+	cpp::result<void, std::string> set_source_name() {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+
+		auto ret = utils::get_program_path();
+		if (!ret) {
+			return cpp::failure(ret.error());
+		}
+		auto path = ret.value();
+		std::replace(path.begin(), path.end(), '\\', '/');
+		return set_source_name(run_id_, path);
+	}
+
+	cpp::result<void, std::string> set_user_name(const std::string& run_id,
+												 const std::string& username) {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+		return set_tag(run_id, {"mlflow.user", username});
+	}
+
+	cpp::result<void, std::string> set_user_name() {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+
+		auto ret = utils::get_user_name();
+		if (!ret) {
+			return cpp::failure(ret.error());
+		}
+		return set_user_name(run_id_, ret.value());
+	}
+
+	cpp::result<void, std::string> end_run() {
+		if (run_id_.empty()) {
+			return cpp::failure("run_id_ is empty");
+		}
+
+		auto ret = update_run(run_id_, mlflow::RunStatus::FINISHED);
+		if (!ret) {
+			return cpp::failure(ret.error());
+		}
+		return {};
+	}
+
+	cpp::result<void, std::string> start_run(const std::string& run_name = "",
+											 const std::string& run_id = "",
+											 const std::string& experiment_id = "0") {
+		if (!run_id.empty()) {
+			auto ret = update_run(run_id, RunStatus::RUNNING, 0);
+			if (!ret) {
+				return cpp::failure(ret.error());
+			}
+			return {};
+		}
+
+		auto exp = get_experiment(experiment_id);
+		if (!exp) {
+			return cpp::failure(exp.error());
+		}
+
+		std::string exp_id = exp.value().experiment_id;
+		auto run = create_run(exp_id);
+		if (!run) {
+			return cpp::failure(run.error());
+		}
+		set_runid(run.value().info.run_id);
+		if (!run_name.empty()) {
+			auto ret = set_run_name(run_name);
+			if (!ret) {
+				return cpp::failure(run.error());
+			}
+		}
+		auto ret_ = set_user_name();
+		if (!ret_) {
+			return cpp::failure(ret_.error());
+		}
+		ret_ = set_source_name();
+		if (!ret_) {
+			return cpp::failure(ret_.error());
+		}
+		return {};
+	}
 
    private:
 	cpp::result<void, std::string> handle_http_method_result(const httplib::Result& res) {
@@ -402,12 +653,14 @@ class Client {
 #endif
 		nlohmann::json ret_json = nlohmann::json::parse(res->body);
 		if (!ret_json.contains(key)) {
-			return cpp::failure("invalid response body, expected keyword: \"" + key + "\"" +
-								"but " + res->body);
+			return cpp::failure(funcname + ": invalid response body, expected keyword: \"" + key +
+								"\"" + "but " + res->body);
 		}
 		return ret_json[key];
 	}
 
 	httplib::Client cli;
+	std::string run_id_;
+	bool running = false;
 };
 }  // namespace mlflow
