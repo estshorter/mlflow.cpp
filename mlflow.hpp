@@ -78,7 +78,13 @@ cpp::result<std::string, std::string> get_program_path() {
 	return cpp::failure("get_program_path: GetModuleFileName failed");
 
 #else
-
+	char exePath[PATH_MAX];
+	ssize_t len = ::readlink("/proc/self/exe", exePath, sizeof(exePath));
+	if (len == -1 || len == sizeof(exePath)) {
+		return cpp::failure("readlink failed");
+	}
+	exePath[len] = '\0';
+	return exePath;
 #endif
 }
 
