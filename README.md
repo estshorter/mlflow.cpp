@@ -18,6 +18,7 @@ Note: not all REST APIs are implemented.
 - Log Metric
 - Log Batch
 - Set Tag
+- Log Param
 - Update Run
 
 Also, `mlflow::start_run()` and `mlflow::end_run()` are implemented as helper functions.
