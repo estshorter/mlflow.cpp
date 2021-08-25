@@ -9,7 +9,7 @@ This library supports Windows10 and linux.
 - [result](https://github.com/bitwizeshift/result)
 
 ## Implemented APIs
-Currently, the only following APIs are implemented.
+Currently, only the following APIs are implemented.
 - Create Experiment
 - Get Experiment
 - Get Experiment By Name
