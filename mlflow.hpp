@@ -629,11 +629,11 @@ class Client {
 		}
 		auto ret_ = set_user_name();
 		if (!ret_) {
-			return cpp::failure(ret_.error());
+			std::cerr << "warning: set_user_name failed: " + ret_.error() << std::endl;
 		}
 		ret_ = set_source_name();
 		if (!ret_) {
-			return cpp::failure(ret_.error());
+			std::cerr << "warning: set_source_name failed: " + ret_.error() << std::endl;
 		}
 		return {};
 	}
