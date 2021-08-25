@@ -136,8 +136,10 @@ struct Metric {
 };
 
 void to_json(nlohmann::json& j, const Metric& m) {
-	j = nlohmann::json{
-		{"key", m.key}, {"value", m.value}, {"timestamp", std::to_string(m.timestamp)}, {"step", std::to_string(m.step)}};
+	j = nlohmann::json{{"key", m.key},
+					   {"value", m.value},
+					   {"timestamp", std::to_string(m.timestamp)},
+					   {"step", std::to_string(m.step)}};
 }
 
 void from_json(const nlohmann::json& j, Metric& m) {
@@ -382,17 +384,13 @@ class Client {
    private:
 	cpp::result<void, std::string> handle_http_method_result(const httplib::Result& res) {
 		if (!res) {
-			std::ostringstream oss;
-			oss << "invalid status: " << res->status;
-			return cpp::failure(oss.str());
+			return cpp::failure("conection error: " + httplib::to_string(res.error()));
 		}
-		if (res->status != 200) {
-			std::ostringstream oss;
-			oss << "invalid status: " << res->status;
-			oss << ", body: " << std::endl << res->body;
-			return cpp::failure(oss.str());
-		}
-		return {};
+		if (res->status == 200) return {};
+		std::ostringstream oss;
+		oss << "invalid status: " << res->status << httplib::detail::status_message(res->status);
+		oss << ", body: " << std::endl << res->body;
+		return cpp::failure(oss.str());
 	};
 
 	cpp::result<nlohmann::json, std::string> handle_http_body(const httplib::Result& res,
