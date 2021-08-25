@@ -406,10 +406,11 @@ class Client {
 		return ret_;
 	};
 
-	cpp::result<Run, std::string> create_run(const std::string& experiment_id) {
+	cpp::result<Run, std::string> create_run(const std::string& experiment_id,
+											 const std::vector<RunTag>& tags = {}) {
 		using namespace std::chrono;
 		auto unixtime = duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-		return create_run(experiment_id, unixtime);
+		return create_run(experiment_id, unixtime, tags);
 	}
 
 	cpp::result<RunInfo, std::string> update_run(const std::string& run_id, RunStatus status,
