@@ -1,11 +1,5 @@
 add_executable(examples main.cpp ../mlflow.hpp)
 
-target_include_directories(examples PRIVATE 
-../include/cpp-httplib  
-../include/result/include 
-../include/json/include  
-../)
-
 target_compile_options(examples PRIVATE
     $<$<CXX_COMPILER_ID:GNU>:-Wall -Wextra>
     $<$<CXX_COMPILER_ID:Clang>:-Wall -Wextra>
