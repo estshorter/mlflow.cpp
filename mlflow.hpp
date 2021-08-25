@@ -137,7 +137,7 @@ struct Metric {
 
 void to_json(nlohmann::json& j, const Metric& m) {
 	j = nlohmann::json{
-		{"key", m.key}, {"value", m.value}, {"timestamp", m.timestamp}, {"step", m.step}};
+		{"key", m.key}, {"value", m.value}, {"timestamp", std::to_string(m.timestamp)}, {"step", std::to_string(m.step)}};
 }
 
 void from_json(const nlohmann::json& j, Metric& m) {
@@ -205,9 +205,9 @@ void to_json(nlohmann::json& j, const RunInfo& rd) {
 		{"run_id", rd.run_id},
 		{"experiment_id", rd.experiment_id},
 		{"user_id", rd.user_id},
-		{"status", rd.status},
-		{"start_time", rd.start_time},
-		{"end_time", rd.end_time},
+		{"status", detail::RunStatus[static_cast<int>(rd.status)]},
+		{"start_time", std::to_string(rd.start_time)},
+		{"end_time", std::to_string(rd.end_time)},
 		{"artifact_uri", rd.artifact_uri},
 		{"lifecycle_stage", rd.lifecycle_stage},
 	};
@@ -262,7 +262,7 @@ class Client {
 
 		auto res =
 			cli.Post("/api/2.0/mlflow/experiments/create", send_data.dump(), "application/json");
-		auto ret = handle_http_result(res);
+		auto ret = handle_http_method_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
 		}
@@ -273,7 +273,7 @@ class Client {
 		auto res =
 			cli.Get(("/api/2.0/mlflow/experiments/get-by-name?experiment_name=" + url_encode(name))
 						.c_str());
-		auto ret = handle_http_result(res);
+		auto ret = handle_http_method_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
 		}
@@ -288,7 +288,7 @@ class Client {
 		send_data["experiment_id"] = experiment_id;
 		send_data["start_time"] = start_time;
 		auto res = cli.Post("/api/2.0/mlflow/runs/create", send_data.dump(), "application/json");
-		auto ret = handle_http_result(res);
+		auto ret = handle_http_method_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
 		}
@@ -318,7 +318,7 @@ class Client {
 				break;
 		}
 		auto res = cli.Post("/api/2.0/mlflow/runs/update", send_data.dump(), "application/json");
-		auto ret = handle_http_result(res);
+		auto ret = handle_http_method_result(res);
 		if (!ret) {
 			return cpp::failure(ret.error());
 		}
@@ -342,7 +342,7 @@ class Client {
 
 		auto res =
 			cli.Post("/api/2.0/mlflow/runs/log-metric", send_data.dump(), "application/json");
-		return handle_http_result(res);
+		return handle_http_method_result(res);
 	};
 
 	cpp::result<void, std::string> log_batch(const std::string& run_id,
@@ -355,7 +355,7 @@ class Client {
 		send_data["params"] = params;
 		send_data["tags"] = tags;
 		auto res = cli.Post("/api/2.0/mlflow/runs/log-batch", send_data.dump(), "application/json");
-		return handle_http_result(res);
+		return handle_http_method_result(res);
 	};
 
 	cpp::result<void, std::string> log_param(const std::string& run_id, const Param& param) {
@@ -366,7 +366,7 @@ class Client {
 
 		auto res =
 			cli.Post("/api/2.0/mlflow/runs/log-parameter", send_data.dump(), "application/json");
-		return handle_http_result(res);
+		return handle_http_method_result(res);
 	};
 
 	cpp::result<void, std::string> set_tag(const std::string& run_id, const RunTag& tag) {
@@ -376,11 +376,11 @@ class Client {
 		send_data["value"] = tag.value;
 
 		auto res = cli.Post("/api/2.0/mlflow/runs/set-tag", send_data.dump(), "application/json");
-		return handle_http_result(res);
+		return handle_http_method_result(res);
 	};
 
    private:
-	cpp::result<void, std::string> handle_http_result(const httplib::Result& res) {
+	cpp::result<void, std::string> handle_http_method_result(const httplib::Result& res) {
 		if (!res) {
 			std::ostringstream oss;
 			oss << "invalid status: " << res->status;
