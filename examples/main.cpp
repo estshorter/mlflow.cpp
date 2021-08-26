@@ -24,11 +24,11 @@ cpp::result<void, std::string> send_data(mlflow::Client& cli) {
 	if (!ret) {
 		return cpp::failure(ret.error());
 	}
+	ret = cli.set_tag({"mlflow.note.content", "HELLO!"});
 	return {};
 }
 
-cpp::result<void, std::string> example_low_level(void) {
-	mlflow::Client cli("http://localhost:5000");
+cpp::result<void, std::string> example_low_level(mlflow::Client& cli) {
 	auto exp = cli.get_experiment_by_name("Default");
 	if (!exp) {
 		return cpp::failure(exp.error());
@@ -40,10 +40,11 @@ cpp::result<void, std::string> example_low_level(void) {
 	}
 	std::string run_id = run.value().info.run_id;
 	cli.set_runid(run_id);
+
 	cli.set_run_name("example_low_level").value();
 	cli.set_user_name().value();
 	cli.set_source_name().value();
-
+	cli.set_tag({"mlflow.source.type", "LOCAL"}).value();
 	auto ret1 = send_data(cli);
 	if (!ret1) {
 		return cpp::failure(ret1.error());
@@ -56,8 +57,7 @@ cpp::result<void, std::string> example_low_level(void) {
 	return {};
 }
 
-cpp::result<void, std::string> example_high_level(void) {
-	mlflow::Client cli("http://localhost:5000");
+cpp::result<void, std::string> example_high_level(mlflow::Client& cli) {
 	auto ret_ = cli.start_run("example_high_level");
 	if (!ret_) {
 		return cpp::failure(ret_.error());
@@ -72,12 +72,13 @@ cpp::result<void, std::string> example_high_level(void) {
 }
 
 int main(void) {
-	auto ret = example_low_level();
+	mlflow::Client cli("http://localhost:5000");
+	auto ret = example_low_level(cli);
 	if (!ret) {
 		std::cerr << ret.error() << std::endl;
 		return 1;
 	}
-	ret = example_high_level();
+	ret = example_high_level(cli);
 	if (!ret) {
 		std::cerr << ret.error() << std::endl;
 		return 1;

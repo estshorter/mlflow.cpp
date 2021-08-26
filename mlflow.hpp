@@ -636,6 +636,10 @@ class Client {
 		if (!ret_) {
 			std::cerr << "warning: set_source_name failed: " + ret_.error() << std::endl;
 		}
+		ret_ = set_tag({"mlflow.source.type", "LOCAL"});
+		if (!ret_) {
+			std::cerr << "warning: set_source_name failed: " + ret_.error() << std::endl;
+		}
 		return {};
 	}
 
