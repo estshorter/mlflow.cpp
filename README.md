@@ -1,5 +1,5 @@
 # mlflow.cpp
-**mlflow.cpp** is a C++ library which communicates with [mlflow](https://mlflow.org/) via its [REST API](https://www.mlflow.org/docs/latest/rest-api.html).
+**mlflow.cpp** is a C++ library which communicates with [MLflow Tracking](https://mlflow.org/docs/latest/tracking.html) via its [REST API](https://www.mlflow.org/docs/latest/rest-api.html).
 This library supports Windows10 and linux.
 
 ## Requiremtents
