@@ -16,11 +16,7 @@ if(DOWNLOAD_DEPENDENCIES)
       LOG_INSTALL ON
 	)
 	
-	include_directories( 
-./include/cpp-httplib  
-./include/result/include 
-${CMAKE_CURRENT_BINARY_DIR}/json/src/json/include  
-./)
+	target_include_directories(mlflow_cpp PUBLIC ./include/cpp-httplib ${CMAKE_CURRENT_BINARY_DIR}/json/src/json/include ./)
 endif()
 
 add_subdirectory(examples)
