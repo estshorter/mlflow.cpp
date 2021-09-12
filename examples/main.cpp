@@ -11,7 +11,8 @@ void send_data(mlflow::Client& cli) {
 	std::this_thread::sleep_for(100ms);
 	cli.log_metric({"METRIC_KEY", "0.0", 1});
 	std::this_thread::sleep_for(100ms);
-	cli.log_metric({"METRIC_KEY", "1.0", 2});
+	cli.log_metric({ "METRIC_KEY", "1.0", 2 });
+	cli.set_tag({ "mlflow.note.content", "HELLO!" });
 }
 
 void example_low_level(void) {
@@ -24,7 +25,7 @@ void example_low_level(void) {
 	cli.set_run_name("example_low_level");
 	cli.set_user_name();
 	cli.set_source_name();
-
+	cli.set_tag({ "mlflow.source.type", "LOCAL" });
 	send_data(cli);
 
 	cli.update_run(mlflow::RunStatus::FINISHED);
@@ -41,5 +42,7 @@ void example_high_level(void) {
 int main(void) {
 	example_low_level();
 	example_high_level();
+
+
 	return 0;
 }

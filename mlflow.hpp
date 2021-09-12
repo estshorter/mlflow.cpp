@@ -386,7 +386,9 @@ class Client {
 		auto res = cli.Post("/api/2.0/mlflow/runs/create", send_data.dump(), "application/json");
 		handle_http_method_result(res);
 
-		return handle_http_body(res, "run", "create_run");
+		auto ret = handle_http_body(res, "run", "create_run");
+		running = true;
+		return ret;
 	};
 
 	Run create_run(const std::string& experiment_id, const std::vector<RunTag>& tags = {}) {
@@ -574,9 +576,7 @@ class Client {
 		if (!run_name.empty()) {
 			set_run_name(run_name);
 		}
-		set_user_name();
-		set_source_name();
-		return;
+		set_tag({ "mlflow.source.type", "LOCAL" });
 	}
 
    private:
