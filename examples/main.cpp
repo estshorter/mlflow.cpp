@@ -25,7 +25,7 @@ void example_low_level(void) {
 	cli.set_run_name("example_low_level");
 	cli.set_user_name();
 	cli.set_source_name();
-	cli.set_tag({"mlflow.source.type", "LOCAL"});
+	cli.set_source_type();
 	send_data(cli);
 
 	cli.update_run(mlflow::RunStatus::FINISHED);

@@ -537,10 +537,18 @@ class Client {
 		return set_source_name(run_id_, path);
 	}
 
-	void set_user_name(const std::string& run_id, const std::string& username) {
+	void set_source_type(const std::string& run_id, const std::string& source_type) {
+		return set_tag(run_id, {"mlflow.source.type", source_type});
+	}
+
+	void set_source_type(const std::string& source_type = "LOCAL") {
 		if (run_id_.empty()) {
 			throw std::runtime_error("run_id_ is empty");
 		}
+		return set_source_type(run_id_, source_type);
+	}
+
+	void set_user_name(const std::string& run_id, const std::string& username) {
 		return set_tag(run_id, {"mlflow.user", username});
 	}
 
@@ -576,7 +584,9 @@ class Client {
 		if (!run_name.empty()) {
 			set_run_name(run_name);
 		}
-		set_tag({ "mlflow.source.type", "LOCAL" });
+		set_user_name();
+		set_source_name();
+		set_source_type();
 	}
 
    private:
