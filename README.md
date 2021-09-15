@@ -6,7 +6,6 @@ This library supports Windows10 and linux.
 - C++17 or later
 - [cpp-httplib](https://github.com/yhirose/cpp-httplib)
 - [nlohmann/json](https://github.com/nlohmann/json)
-- [result](https://github.com/bitwizeshift/result)
 
 ## Implemented APIs
 Currently, only the following APIs are implemented.
