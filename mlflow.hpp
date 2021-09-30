@@ -39,7 +39,7 @@ inline std::string to_multibyte(UINT enc_dst, const std::wstring& src) {
 }
 #endif
 
-std::string get_user_name() {
+inline std::string get_user_name() {
 #ifdef _WIN32
 	wchar_t user_name[UNLEN + 1];
 	DWORD user_name_size = UNLEN + 1;
@@ -57,7 +57,7 @@ std::string get_user_name() {
 #endif
 };
 
-std::string get_program_path() {
+inline std::string get_program_path() {
 #ifdef _WIN32
 	DWORD nsize = _MAX_PATH + 1;
 	int cnt = 0;
@@ -97,7 +97,7 @@ const static std::vector<std::string> RunStatus = {"RUNNING", "SCHEDULED", "FINI
 const static std::vector<std::string> ViewType = {"ACTIVE_ONLY", "DELETED_ONLY", "ALL"};
 
 // https://stackoverflow.com/questions/154536/encode-decode-urls-in-c
-std::string url_encode(const std::string& value) {
+inline std::string url_encode(const std::string& value) {
 	std::ostringstream escaped;
 	escaped.fill('0');
 	escaped << std::hex;
@@ -123,7 +123,7 @@ std::string url_encode(const std::string& value) {
 };	// namespace detail
 
 enum class RunStatus : int { RUNNING, SCHEDULED, FINISHED, FAILED, KILLED, UNINITALIZED };
-RunStatus string_to_run_status(const std::string& str) {
+inline RunStatus string_to_run_status(const std::string& str) {
 	if (str == "RUNNING") {
 		return RunStatus::RUNNING;
 	}
@@ -152,11 +152,11 @@ struct KeyValue {
 	std::string value;
 };
 
-void to_json(nlohmann::json& j, const KeyValue& kv) {
+inline void to_json(nlohmann::json& j, const KeyValue& kv) {
 	j = nlohmann::json{{"key", kv.key}, {"value", kv.value}};
 }
 
-void from_json(const nlohmann::json& j, KeyValue& kv) {
+inline void from_json(const nlohmann::json& j, KeyValue& kv) {
 	j.at("key").get_to(kv.key);
 	j.at("value").get_to(kv.value);
 }
@@ -184,7 +184,7 @@ struct Experiment {
 	std::vector<KeyValue> tags;
 };
 
-void from_json(const nlohmann::json& j, Experiment& e) {
+inline void from_json(const nlohmann::json& j, Experiment& e) {
 	j.at("experiment_id").get_to(e.experiment_id);
 	j.at("name").get_to(e.name);
 	j.at("artifact_location").get_to(e.artifact_location);
@@ -221,14 +221,14 @@ struct Metric {
 	std::int64_t step;
 };
 
-void to_json(nlohmann::json& j, const Metric& m) {
+inline void to_json(nlohmann::json& j, const Metric& m) {
 	j = nlohmann::json{{"key", m.key},
 					   {"value", m.value},
 					   {"timestamp", std::to_string(m.timestamp)},
 					   {"step", std::to_string(m.step)}};
 }
 
-void from_json(const nlohmann::json& j, Metric& m) {
+inline void from_json(const nlohmann::json& j, Metric& m) {
 	j.at("key").get_to(m.key);
 	j.at("value").get_to(m.value);
 	m.timestamp = std::stoll(j.at("timestamp").get<std::string>());
@@ -244,7 +244,7 @@ struct RunData {
 	std::vector<RunTag> tags;
 };
 
-void to_json(nlohmann::json& j, const RunData& rd) {
+inline void to_json(nlohmann::json& j, const RunData& rd) {
 	j = nlohmann::json{
 		{"metrics", rd.metrics},
 		{"params", rd.params},
@@ -252,7 +252,7 @@ void to_json(nlohmann::json& j, const RunData& rd) {
 	};
 }
 
-void from_json(const nlohmann::json& j, RunData& rd) {
+inline void from_json(const nlohmann::json& j, RunData& rd) {
 	if (j.contains("metrics")) {
 		j.at("metrics").get_to(rd.metrics);
 	}
@@ -288,7 +288,7 @@ struct RunInfo {
 	std::string lifecycle_stage;
 };
 
-void to_json(nlohmann::json& j, const RunInfo& rd) {
+inline void to_json(nlohmann::json& j, const RunInfo& rd) {
 	j = nlohmann::json{
 		{"run_id", rd.run_id},
 		{"experiment_id", rd.experiment_id},
@@ -301,7 +301,7 @@ void to_json(nlohmann::json& j, const RunInfo& rd) {
 	};
 }
 
-void from_json(const nlohmann::json& j, RunInfo& rd) {
+inline void from_json(const nlohmann::json& j, RunInfo& rd) {
 	j.at("run_id").get_to(rd.run_id);
 	j.at("experiment_id").get_to(rd.experiment_id);
 	j.at("user_id").get_to(rd.user_id);
@@ -321,14 +321,14 @@ struct Run {
 	RunData data;
 };
 
-void to_json(nlohmann::json& j, const Run& rd) {
+inline void to_json(nlohmann::json& j, const Run& rd) {
 	j = nlohmann::json{
 		{"info", rd.info},
 		{"data", rd.data},
 	};
 }
 
-void from_json(const nlohmann::json& j, Run& rd) {
+inline void from_json(const nlohmann::json& j, Run& rd) {
 	j.at("info").get_to(rd.info);
 	j.at("data").get_to(rd.data);
 }
