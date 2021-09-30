@@ -575,9 +575,6 @@ class Client {
 			auto ret = update_run(run_id, RunStatus::RUNNING, 0);
 		}
 
-		auto exp = get_experiment(experiment_id);
-
-		std::string exp_id = exp.experiment_id;
 		auto run = create_run(experiment_id);
 
 		set_runid(run.info.run_id);
