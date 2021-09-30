@@ -1,10 +1,13 @@
 #pragma once
+
+#pragma warning(push)
+#pragma warning(disable : 5105)
 #include <httplib.h>
+#pragma warning(pop)
 
 #ifdef _WIN32
 #define NOMINMAX
 #define WIN32_LEAN_AND_MEAN
-#pragma warning(suppress : 5105)
 #include <Lmcons.h>
 #include <Windows.h>
 #undef NOMINMAX
