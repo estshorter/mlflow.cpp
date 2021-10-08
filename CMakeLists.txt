@@ -7,7 +7,7 @@ option(DOWNLOAD_DEPENDENCIES "download dependencies" OFF)
 if(DOWNLOAD_DEPENDENCIES)
 	include(ExternalProject)
 	ExternalProject_Add (json
-	  URL https://github.com/nlohmann/json/releases/download/v3.10.2/include.zip
+	  URL https://github.com/nlohmann/json/releases/download/v3.10.3/include.zip
 	  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/json
       CONFIGURE_COMMAND ""
       BUILD_COMMAND ""
