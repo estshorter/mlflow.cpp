@@ -20,3 +20,4 @@ if(DOWNLOAD_DEPENDENCIES)
 endif()
 
 add_subdirectory(examples)
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT "examples")
