@@ -6,10 +6,6 @@ target_compile_options(examples PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4 /utf-8 /Zc:__cplusplus /Zc:preprocessor>
 )
 
-if(DOWNLOAD_DEPENDENCIES)
-	add_dependencies(examples json)
-endif()
-
 option(ENABLE_CXX20 "Enable C++20 feature" OFF)
 
 if (ENABLE_CXX20)
